@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
-from modules.loss import losses
+from modules.loss import losses,structure_loss
 import numpy as np
-
+from torch.nn import functional as F
 from resnet import wide_resnet50_2 as wd
 from std_resnet import wide_resnet50_2 as wd2
 from modules.dfs import DomainRelated_Feature_Selection,domain_related_feature_selection
@@ -70,28 +70,32 @@ class UniNet(nn.Module):
             selected_features = domain_related_feature_selection(a, b, max=max)
         return selected_features
 
-    def loss_computation(self, b, a, margin=1, mask=None, stop_gradient=False):
-        T = 0.1 if self._class_ in ['transistor', 'pill', 'cable', 'bottle', "grid", 'foam'] else self.T
-        loss = losses(b, a, T, margin, mask=mask, stop_gradient=stop_gradient)
+    def loss_computation(self, b, a, pred_list, margin=1, mask=None, stop_gradient=False):
+        loss = losses(b, a, self.T, margin, mask=None, stop_gradient=stop_gradient) + \
+               structure_loss(pred_list[0][0], mask) + structure_loss(pred_list[0][-1], mask)
 
         return loss
 
     def forward(self, x, max=True, mask=None, stop_gradient=False):
         Sou_Tar_features, bnins = self.t(x)
         bnsout = self.bn(bnins)
-        stu_features = self.s(bnsout)
+        stu_features, stu_pred = self.s(bnsout, [bnins[-1], bnins[-2]])
 
         stu_features = [d.chunk(dim=0, chunks=2) for d in stu_features]
         stu_features = [stu_features[2][0], stu_features[1][0], stu_features[0][0],
                         stu_features[2][1], stu_features[1][1], stu_features[0][1]]
+        
+        stu_pred1 = F.interpolate(stu_pred[0], scale_factor=4, mode='bilinear')
+        stu_pred1 = stu_pred1.chunk(dim=0, chunks=2)
         self.type = 'train'
         if self.type == 'train':
             stu_features_ = self.feature_selection(Sou_Tar_features, stu_features, max)
-            loss = self.loss_computation(Sou_Tar_features, stu_features_, mask=mask, stop_gradient=stop_gradient)
+            
+            loss = self.loss_computation(Sou_Tar_features, stu_features_,[stu_pred1], mask=mask, stop_gradient=stop_gradient)
 
             return loss
         else:
-            return Sou_Tar_features, stu_features
+            return Sou_Tar_features, stu_features,[stu_pred1]
 
 
 class Teachers(nn.Module):
@@ -156,7 +160,7 @@ class Student(nn.Module):
         return self
 
     def forward(self, bn_outs, skips=None):
-        de_features = self.s1(bn_outs)
+        de_features = self.s1(bn_outs,skips)
 
         return de_features
 
