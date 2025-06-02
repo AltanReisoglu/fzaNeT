@@ -151,9 +151,9 @@ class MVTecDataset(Dataset):
         if y == 0:
             mask = torch.zeros([1, *self.input_size])
         else:
-            mask = cv.imread(mask)
-            mask = self.transform_mask(mask)
-
+            mask = cv.imread(mask, cv.IMREAD_GRAYSCALE)  # grayscale olarak oku (isteğe bağlı)
+            mask = Image.fromarray(mask)                 # NumPy → PIL
+            mask = self.transform_mask(mask)             # Artık transform uygulanabilir
         return x, y, mask
 
     def __len__(self):
@@ -261,6 +261,9 @@ def loading_dataset(c):
 if __name__=="__main__":
     c=dict(dataset_name="MVTec AD",image_size=224,setting="oc",batch_size=1)
     train,test=loading_dataset(c)
-    for i in train:
-        print(i[0])
+    for i in test:
+        print(len(i))
+        print(i[0].shape)
+        print(i[1].shape)
+        print(i[2].shape)
         break
