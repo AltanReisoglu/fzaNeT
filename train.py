@@ -31,6 +31,7 @@ import warnings
 import copy
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="importlib._bootstrap")
 from dataset import loading_dataset
+from tqdm import tqdm
 
 c=dict(dataset_name="MVTec AD",image_size=224,setting="oc",batch_size=1,epochs=5)
 lr = {"lr_s": 5e-3, "lr_t": 1e-6}
@@ -65,28 +66,40 @@ def train_polyp(c):
     lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[int(total_iters * 0.8)], gamma=0.2)
     it = 0
     best = 0.0
+
+
     for epoch in range(c["epochs"]):
         model.train_or_eval(type='train')
         loss_list = []
-        for i, sample in enumerate(train_dataloader):
+
+        # tqdm ile dataloader'ı sarmalıyoruz
+        progress_bar = tqdm(train_dataloader, desc=f"Epoch {epoch+1}/{c['epochs']}", leave=True)
+        
+        for i, sample in enumerate(progress_bar):
             img = sample[0].to(device)
-            print(img)
-            loss = model(img,mask=sample[2].to("cuda"), max=False)
+            loss = model(img, mask=sample[2].to(device), max=False)
+
             optimizer.zero_grad()
-            # optimizer1.zero_grad()
             loss.backward()
-            # torch.nn.utils.clip_grad_norm_(params, 0.5)
             optimizer.step()
-            # optimizer1.step()
-            loss_list.append(loss.item())
             lr_scheduler.step()
+
+            loss_list.append(loss.item())
+            
+            # tqdm bar'ında anlık loss'u göster
+            progress_bar.set_postfix({"loss": loss.item()})
+
+        # epoch sonu logları ve ağırlık kaydı
+        print('Epoch [{}/{}] | Mean Loss: {:.4f}'.format(epoch+1, c["epochs"], np.mean(loss_list)))
+        
+        os.makedirs(f"weights/{epoch}", exist_ok=True)
+        os.makedirs(f"weights/epoch_{epoch}_weights", exist_ok=True)
         torch.save(model.state_dict(), f"weights/{epoch}/epochs_{epoch}_fzanet_trained.pth")
         torch.save(student.state_dict(), f"weights/{epoch}/epochs_{epoch}_student_trained.pth")
         torch.save(bn.state_dict(), f"weights/{epoch}/epochs_{epoch}_bn_trained.pth")
         torch.save(DFS.state_dict(), f"weights/{epoch}/epochs_{epoch}_dfs_trained.pth")
         torch.save(Target_teacher.state_dict(), f"weights/epoch_{epoch}_weights/epochs_{epoch}_target_t_trained.pth")
-        print('epoch [{}/{}], loss:{:.4f}'.format(epoch+1, c["epochs"], np.mean(loss_list)))
 
-    return "okey"
+        return "okey"
 
 train_polyp(c)
