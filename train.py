@@ -32,6 +32,7 @@ import copy
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="importlib._bootstrap")
 from dataset import loading_dataset
 from tqdm import tqdm
+from eval import evaluation_batch
 
 c=dict(dataset_name="MVTec AD",image_size=224,setting="oc",batch_size=1,epochs=5)
 lr = {"lr_s": 5e-3, "lr_t": 1e-6}
@@ -99,7 +100,7 @@ def train_polyp(c):
         torch.save(bn.state_dict(), f"weights/{epoch}/epochs_{epoch}_bn_trained.pth")
         torch.save(DFS.state_dict(), f"weights/{epoch}/epochs_{epoch}_dfs_trained.pth")
         torch.save(Target_teacher.state_dict(), f"weights/epoch_{epoch}_weights/epochs_{epoch}_target_t_trained.pth")
-
+        evaluation_batch(c,model,test_dataloader,device)
         return "okey"
 
 train_polyp(c)
