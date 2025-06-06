@@ -11,7 +11,7 @@ except ImportError:
     from torch.utils.model_zoo import load_url as load_state_dict_from_url
 import gc
 from torchsummary import summary
-from modules.deformable_attention import DeformableAttention
+
 from mem import Mem
 from modules.deformable_attention import Use_Def_att
 torch.cuda.empty_cache()
@@ -198,7 +198,7 @@ class BaseModel(nn.Module):
                 if isinstance(m, Bottleneck):
                     nn.init.constant_(m.bn3.weight, 0) 
 
-        self.conv1x1_1 =DeformableAttention(256,1,1,3,padding=3//2)
+        self.conv1x1_1 = nn.Conv2d(256, 1, 1, 1, 0, bias=False)
         #nn.Conv2d(256, 1, 1, 1, 0, bias=False)
     def Basic(self, intInput, intOutput):
         return torch.nn.Sequential(
