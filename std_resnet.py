@@ -11,8 +11,9 @@ except ImportError:
     from torch.utils.model_zoo import load_url as load_state_dict_from_url
 import gc
 from torchsummary import summary
-from modules.additional_attentions import DeformableAttention
+from modules.deformable_attention import DeformableAttention
 from mem import Mem
+from modules.deformable_attention import Use_Def_att
 torch.cuda.empty_cache()
 gc.collect()
 def fuse_bn(conv, bn):
@@ -258,9 +259,10 @@ class BaseModel(nn.Module):
             layers.append(block(self.inplanes, planes, groups=self.groups,
                                 base_width=self.base_width, dilation=self.dilation,
                                 norm_layer=norm_layer, request=use_attention))
-
-            layers.append(AltanAttention(self.inplanes))
-            
+            if(blocks%6==0):
+                layers.append(Use_Def_att())
+            else:
+                layers.append(AltanAttention(self.inplanes))
         return nn.Sequential(*layers)   
 
     def forward(self,x:torch.Tensor,skip=None)->torch.Tensor:
