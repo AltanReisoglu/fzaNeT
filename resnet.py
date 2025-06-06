@@ -12,6 +12,7 @@ except ImportError:
 import gc
 from torchsummary import summary
 from mem import Mem
+from modules.deformable_attention import Use_Def_att
 torch.cuda.empty_cache()
 gc.collect()
 def fuse_bn(conv, bn):
@@ -278,7 +279,10 @@ class BaseModel(nn.Module):
                                 base_width=self.base_width, dilation=self.dilation,
                                 norm_layer=norm_layer, request=use_attention))
 
-            layers.append(AltanAttention(self.inplanes))
+            if(blocks%6==0):
+                layers.append(Use_Def_att())
+            else:
+                layers.append(AltanAttention(self.inplanes))
         return nn.Sequential(*layers)   
 
     def forward(self,x:torch.Tensor)->torch.Tensor:
