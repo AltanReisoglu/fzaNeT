@@ -260,7 +260,7 @@ class BaseModel(nn.Module):
                                 base_width=self.base_width, dilation=self.dilation,
                                 norm_layer=norm_layer, request=use_attention))
             if(blocks%6==0):
-                layers.append(Use_Def_att())
+                layers.append(Use_Def_att(self.inplanes))
             else:
                 layers.append(AltanAttention(self.inplanes))
         return nn.Sequential(*layers)   
@@ -268,13 +268,12 @@ class BaseModel(nn.Module):
     def forward(self,x:torch.Tensor,skip=None)->torch.Tensor:
 
         feature_a = self.layer1(x)
+
         if skip is not None:
             feature_b = self.layer2(feature_a+skip[0])
-
             feature_c = self.layer3(feature_b+skip[1])
         else:
             feature_b = self.layer2(feature_a)
-
             feature_c = self.layer3(feature_b)
 
         feature_c_l=self.conv1x1_1(feature_c)
