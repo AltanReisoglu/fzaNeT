@@ -279,10 +279,10 @@ class BaseModel(nn.Module):
                                 base_width=self.base_width, dilation=self.dilation,
                                 norm_layer=norm_layer, request=use_attention))
 
-            if(blocks%6==0):
-                layers.append(Use_Def_att())
-            else:
-                layers.append(AltanAttention(self.inplanes))
+            
+            layers.append(Use_Def_att(self.inplanes))
+            
+            #layers.append(AltanAttention(self.inplanes))
         return nn.Sequential(*layers)   
 
     def forward(self,x:torch.Tensor)->torch.Tensor:
@@ -290,13 +290,9 @@ class BaseModel(nn.Module):
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
-
         feature_a = self.layer1(x)
-
         feature_b = self.layer2(feature_a)
-
         feature_c = self.layer3(feature_b)
-
 
         # x = self.avgpool(feature_d)
         # x = torch.flatten(x, 1)
