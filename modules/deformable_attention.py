@@ -107,35 +107,39 @@ class Use_Def_att(nn.Module):
     """Some Information about Use_Def_att"""
     def __init__(self,d_model=256, n_levels=1, n_heads=4, n_points=4):
         super(Use_Def_att, self).__init__()
-        self.model=MSDeformAttn(d_model=256, n_levels=1, n_heads=4, n_points=4)
+        self.model=MSDeformAttn(d_model=d_model, n_levels=n_levels, n_heads=n_heads, n_points=n_points)
         self.n_levels = 1
-    def forward(self, x:torch.Tensor)->torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         N, C, H, W = x.shape
         Lq = H * W
         input_flatten = x.flatten(2).transpose(1, 2)
-        input_spatial_shapes = torch.tensor([[H, W]], dtype=torch.long).to(device)
+        input_spatial_shapes = torch.tensor([[H, W]], dtype=torch.long).to(x.device)
         query = input_flatten.clone()
+
         grid_y, grid_x = torch.meshgrid(
-            torch.arange(H, dtype=torch.float32),
-            torch.arange(W, dtype=torch.float32),
+            torch.arange(H, dtype=torch.float32, device=x.device),
+            torch.arange(W, dtype=torch.float32, device=x.device),
             indexing='ij'
         )
-        ref_points = torch.stack([grid_x / (W - 1), grid_y / (H - 1)], dim=-1).to(device)
-        ref_points = ref_points.view(N, Lq, self.n_levels, 2)
-        out=self.model(query, ref_points, input_flatten, input_spatial_shapes)
-        out = out.transpose(1, 2).view(N, C, H, W )
-        return x
+        ref_points = torch.stack([grid_x / (W - 1), grid_y / (H - 1)], dim=-1)  # (H, W, 2)
+        ref_points = ref_points.view(1, Lq, 1, 2).repeat(N, 1, self.n_levels, 1)  # (N, Lq, n_levels, 2)
+
+        out = self.model(query, ref_points, input_flatten, input_spatial_shapes)
+        out = out.transpose(1, 2).view(N, C, H, W)
+
+        return out
+
 
 
 
 if __name__ == "__main__":
-    N, C, H, W = 1, 256, 56, 56
+    N, C, H, W = 1, 256,56,56
     def count_parameters(model: nn.Module):
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-    model = Use_Def_att().to("cuda")
+    model = Use_Def_att(256).to("cuda")
     print("Toplam eğitimlenebilir parametre sayısı:", count_parameters(model))
     x = torch.rand(N, C, H, W).to("cuda")
 
