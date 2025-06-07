@@ -225,7 +225,7 @@ def loading_dataset(c):
         train_data_list = []
         test_data_list = []
 
-        lr = {"lr_s": 5e-3, "lr_t": 1e-6}
+        lr = {"lr_s": 1e-4, "lr_t": 1e-5}
 
         if dataset_name == 'MVTec AD':
             dataset_name = 'mvtec'
@@ -259,11 +259,13 @@ def loading_dataset(c):
 
 
 if __name__=="__main__":
-    c=dict(dataset_name="MVTec AD",image_size=224,setting="oc",batch_size=1)
+    
+    c=dict(dataset_name="MVTec AD",image_size=224,setting="oc",batch_size=1,epoch=5)
     train,test=loading_dataset(c)
-    for i in test:
-        print(len(i))
-        print(i[0].shape)
-        print(i[1].shape)
-        print(i[2].shape)
-        break
+    for a, (x, mask, label) in enumerate(train):
+        print(f"Batch {a}")
+        print("x NaN:", torch.isnan(x).any(), "Inf:", torch.isinf(x).any(), "AllZero:", torch.all(x == 0))
+        print("mask NaN:", torch.isnan(mask).any(), "Inf:", torch.isinf(mask).any(), "AllZero:", torch.all(mask == 0))
+        print("label:", label)
+        print("xdxd")
+
