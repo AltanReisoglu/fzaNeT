@@ -92,7 +92,9 @@ class Bottleneck(nn.Module):
         if request==True:
             self.brute_attention=nn.Sequential(
                 ASPP(inplanes,inplanes),
-                CBAM(inplanes)   
+                CBAM(inplanes),
+                self.brute_bn,
+                nn.ReLU(inplace=True)
             )
         else:
             self.brute_attention=nn.Identity()
@@ -259,7 +261,7 @@ class BaseModel(nn.Module):
             layers.append(block(self.inplanes, planes, groups=self.groups,
                                 base_width=self.base_width, dilation=self.dilation,
                                 norm_layer=norm_layer, request=use_attention))
-            if(blocks%6==0):
+            if(blocks%6==0 or blocks%4==0):
                 layers.append(Use_Def_att(self.inplanes))
             else:
                 layers.append(AltanAttention(self.inplanes))
