@@ -113,6 +113,7 @@ class Use_Def_att(nn.Module):
 
         N, C, H, W = x.shape
         Lq = H * W
+        residue=x
         input_flatten = x.flatten(2).transpose(1, 2)
         input_spatial_shapes = torch.tensor([[H, W]], dtype=torch.long).to(x.device)
         query = input_flatten.clone()
@@ -127,7 +128,7 @@ class Use_Def_att(nn.Module):
 
         out = self.model(query, ref_points, input_flatten, input_spatial_shapes)
         out = out.transpose(1, 2).view(N, C, H, W)
-
+        out=residue+out
         return out
 
 
