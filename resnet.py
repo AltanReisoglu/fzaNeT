@@ -279,10 +279,10 @@ class BaseModel(nn.Module):
                                 base_width=self.base_width, dilation=self.dilation,
                                 norm_layer=norm_layer, request=use_attention))
 
-            
-            layers.append(Use_Def_att(self.inplanes))
-            
-            #layers.append(AltanAttention(self.inplanes))
+            if(blocks==3 or blocks==4):
+                layers.append(Use_Def_att(self.inplanes))
+            else:
+                layers.append(AltanAttention(self.inplanes))
         return nn.Sequential(*layers)   
 
     def forward(self,x:torch.Tensor)->torch.Tensor:
@@ -332,10 +332,13 @@ class AttnBasicBlock(nn.Module):
         # self.cbam = GLEAM(planes, 16)
         self.downsample = downsample
         self.stride = stride
+        self.brute_bn=norm_layer(inplanes)
         if request==True:
             self.brute_attention=nn.Sequential(
                 ASPP(inplanes,inplanes),
-                CBAM(inplanes)   
+                CBAM(inplanes),
+                self.brute_bn,
+                nn.ReLU(inplace=True)
             )
         else:
             self.brute_attention=nn.Identity()
